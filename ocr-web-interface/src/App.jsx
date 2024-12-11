@@ -4,6 +4,8 @@ import SignIn from './components/SignInForm';
 import SignUp from './components/SignupForm';
 import Acceuil from './pages/Acceuil';
 import ScannerPage from './pages/Scanner';
+import Galerie from './pages/Galerie';
+import Template from './pages/Template';
 import './App.css';
 
 function App() {
@@ -22,6 +24,8 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/acceuil" element={<Acceuil />} />
             <Route path="/scanner" element={<ScannerPage />} />
+            <Route path="/galerie" element={<Galerie />} />
+            <Route path="/template" element={<Template />} />
           </Routes>
         </div>
       ) : (

@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Camera, Image, File, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const NavBar = () => {
+    const navigate = useNavigate();
+    const location = useLocation(); // Utilisez useLocation pour obtenir la route actuelle
     const [activePage, setActivePage] = useState('Accueil');
-    const navigate = useNavigate(); // Utilisez useNavigate pour naviguer
+
+    useEffect(() => {
+        // Mettez à jour activePage en fonction de la route actuelle
+        if (location.pathname === '/acceuil') {
+            setActivePage('Accueil');
+        } else if (location.pathname === '/scanner') {
+            setActivePage('Camera');
+        } else if (location.pathname === '/galerie') {
+            setActivePage('Galerie');
+        } else if (location.pathname === '/template') {
+            setActivePage('Template');
+        } else if (location.pathname === '/profil') {
+            setActivePage('Profil');
+        }
+    }, [location]); // Recalculer chaque fois que la route change
 
     const handlePageChange = (page, path) => {
         setActivePage(page);
-        navigate(path); // Naviguez vers le chemin correspondant
+        navigate(path);
     };
 
     return (
@@ -23,7 +39,7 @@ const NavBar = () => {
                 </button>
                 <button
                     className={`flex flex-col items-center text-purple-600 ${activePage === 'Camera' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Camera', '/scanner')} // Lien vers la page Scanner
+                    onClick={() => handlePageChange('Camera', '/scanner')}
                 >
                     <Camera className="h-5 w-5" />
                     {activePage === 'Camera' && <span className="text-xs">Scanner</span>}
