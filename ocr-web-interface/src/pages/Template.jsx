@@ -1,130 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Plus, Edit, Trash2, Save, X, Layers, AlertTriangle } from 'lucide-react';
 import NavBar from '../components/NavBar';
-import { motion } from 'framer-motion';
-import Modal from '../components/Modals/TempalteModal';
+import Modal from '../components/Modals/TemplateModal';
 
-// Modèles de formulaires pour OCR prédéfinis
-const PREDEFINED_TEMPLATES = [
+// Configuration initiale des modèles
+const INITIAL_TEMPLATES = [
     {
         id: 1,
         name: "Reçu de paiement",
         description: "Un modèle de reçu pour extraire les informations de paiement",
         icon: <FileText className="w-6 h-6 text-purple-600" />,
-        fields: ["Date", "Montant", "Nom du commerçant", "Mode de paiement"]
-    },
-    {
-        id: 2,
-        name: "Facture",
-        description: "Un modèle de facture pour extraire les détails de facturation",
-        icon: <FileText className="w-6 h-6 text-purple-600" />,
-        fields: ["Numéro de facture", "Date", "Nom du client", "Montant total", "Adresse"]
-    },
-    {
-        id: 3,
-        name: "Carte d'identité",
-        description: "Un modèle pour extraire les informations des cartes d'identité",
-        icon: <FileText className="w-6 h-6 text-purple-600" />,
-        fields: ["Nom", "Prénom", "Date de naissance", "Numéro de carte", "Date d'expiration"]
-    },
-    {
-        id: 4,
-        name: "Formulaire d'entreprise",
-        description: "Un modèle pour extraire les informations des documents d'entreprise",
-        icon: <FileText className="w-6 h-6 text-purple-600" />,
-        fields: ["Nom de l'entreprise", "Adresse", "Numéro de SIRET", "Secteur d'activité"]
-    },
-    {
-        id: 5,
-        name: "Formulaire de permis de conduire",
-        description: "Un modèle pour extraire les informations des permis de conduire",
-        icon: <FileText className="w-6 h-6 text-purple-600" />,
-        fields: ["Nom", "Prénom", "Numéro de permis", "Date de délivrance", "Catégorie"]
+        fields: [
+            {
+                id: 'date',
+                name: 'Date',
+                type: 'text',
+                ocrConfig: {
+                    confidence: 0.9,
+                    dateFormat: 'DD/MM/YYYY',
+                    region: { x: 0, y: 0, width: 100, height: 50 }
+                }
+            },
+            {
+                id: 'amount',
+                name: 'Montant',
+                type: 'number',
+                ocrConfig: {
+                    confidence: 0.85,
+                    numberFormat: 'currency',
+                    region: { x: 0, y: 50, width: 100, height: 50 }
+                }
+            }
+        ]
     }
 ];
 
-const TEMPLATES_PER_PAGE = 2;
-
-const TemplateSelectionPage = () => {
+const TemplateConfigurationPage = () => {
+    const [templates, setTemplates] = useState(INITIAL_TEMPLATES);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [editingTemplate, setEditingTemplate] = useState(null);
 
-    const handleTemplateSelect = (template) => {
-        setSelectedTemplate(template);
-        setIsModalOpen(true);
-    };
+    // États pour les modals
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [templateToDelete, setTemplateToDelete] = useState(null);
 
-    const handleCreateNewTemplate = () => {
-        console.log('Créer un nouveau modèle');
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-    };
-
-    // Pagination logic
-    const totalPages = Math.ceil(PREDEFINED_TEMPLATES.length / TEMPLATES_PER_PAGE);
-    const currentTemplates = PREDEFINED_TEMPLATES.slice(
-        (currentPage - 1) * TEMPLATES_PER_PAGE,
-        currentPage * TEMPLATES_PER_PAGE
-    );
-
-    const nextPage = () => {
-        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-    };
-
-    const prevPage = () => {
-        if (currentPage > 1) setCurrentPage(currentPage - 1);
-    };
-
-     const [touchStart, setTouchStart] = useState(null);
-    const [touchEnd, setTouchEnd] = useState(null);
-
-    const handleTouchStart = (event) => {
-        setTouchStart(event.touches[0].clientX);
-    };
-
-    const handleTouchMove = (event) => {
-        setTouchEnd(event.touches[0].clientX);
-    };
-
-    const handleTouchEnd = () => {
-        if (touchStart && touchEnd) {
-            const diff = touchEnd - touchStart;
-            if (diff > 50) {
-                prevPage();
-            } else if (diff < -50) {
-                nextPage();
-            }
-        }
-        setTouchStart(null);
-        setTouchEnd(null);
-    };
-
-    useEffect(() => {
-        document.addEventListener('touchstart', handleTouchStart);
-        document.addEventListener('touchmove', handleTouchMove);
-        document.addEventListener('touchend', handleTouchEnd);
-        return () => {
-            document.removeEventListener('touchstart', handleTouchStart);
-            document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleTouchEnd);
+    // Fonctions de gestion des modèles
+    const handleCreateTemplate = (newTemplate) => {
+        const templateWithId = {
+            ...newTemplate,
+            id: templates.length + 1,
+            icon: <FileText className="w-6 h-6 text-purple-600" />
         };
-    }, []);
+        setTemplates(prev => [...prev, templateWithId]);
+        setIsCreateModalOpen(false);
+    };
+
+    const handleEditTemplate = (updatedTemplate) => {
+        setTemplates(prev =>
+            prev.map(template =>
+                template.id === updatedTemplate.id ? updatedTemplate : template
+            )
+        );
+        setIsEditModalOpen(false);
+        setEditingTemplate(null);
+    };
+
+    const confirmDeleteTemplate = () => {
+        if (templateToDelete) {
+            setTemplates(prev => prev.filter(t => t.id !== templateToDelete.id));
+            setIsDeleteModalOpen(false);
+            setTemplateToDelete(null);
+        }
+    };
+
+    const openEditModal = (template) => {
+        setEditingTemplate(template);
+        setIsEditModalOpen(true);
+    };
+
+    const openDeleteModal = (template) => {
+        setTemplateToDelete(template);
+        setIsDeleteModalOpen(true);
+    };
 
     return (
         <div className="flex flex-col min-h-screen bg-gray-100">
             <div className="flex-grow px-4 py-8">
                 <div className="max-w-2xl mx-auto">
                     <h1 className="text-2xl font-bold text-purple-700 text-center mb-6">
-                        Modèles de Formulaires
+                        Configuration des Modèles de Formulaires
                     </h1>
 
-                    {/* Bouton Créer Nouveau Modèle */}
+                    {/* Bouton de création de modèle */}
                     <div className="mb-6">
                         <button
-                            onClick={handleCreateNewTemplate}
+                            onClick={() => setIsCreateModalOpen(true)}
                             className="w-full flex items-center justify-center bg-purple-600 text-white rounded-lg p-4 shadow-md hover:bg-purple-700 transition transform hover:scale-105"
                         >
                             <Plus className="w-6 h-6 mr-2" />
@@ -132,17 +104,12 @@ const TemplateSelectionPage = () => {
                         </button>
                     </div>
 
-                    {/* Liste des Modèles Prédéfinis */}
+                    {/* Liste des modèles */}
                     <div className="space-y-4">
-                        {currentTemplates.map((template) => (
+                        {templates.map((template) => (
                             <div
                                 key={template.id}
-                                onClick={() => handleTemplateSelect(template)}
-                                className={`
-                                    flex items-center bg-white rounded-lg p-4 shadow-md cursor-pointer
-                                    transition hover:scale-105 hover:shadow-lg
-                                    ${selectedTemplate?.id === template.id ? 'border-2 border-purple-600' : ''}
-                                `}
+                                className="flex items-center bg-white rounded-lg p-4 shadow-md"
                             >
                                 <div className="mr-4">{template.icon}</div>
                                 <div className="flex-grow">
@@ -155,43 +122,89 @@ const TemplateSelectionPage = () => {
                                         </span>
                                     </div>
                                 </div>
-                                <div>
-                                    <Edit className="w-5 h-5 text-gray-400 hover:text-purple-600" />
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => openEditModal(template)}
+                                        className="text-gray-500 hover:text-purple-600"
+                                    >
+                                        <Edit className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => openDeleteModal(template)}
+                                        className="text-red-500 hover:text-red-600"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
-
-                    {/* Pagination Controls */}
-                    <div className="flex justify-between items-center mt-6">
-                        <button
-                            onClick={prevPage}
-                            disabled={currentPage === 1}
-                            className={`p-2 bg-gray-200 rounded-full ${currentPage === 1 ? 'opacity-50' : 'hover:bg-gray-300'}`}
-                        >
-                            <ChevronLeft className="w-6 h-6" />
-                        </button>
-                        <span className="text-sm font-medium">
-                            Page {currentPage} sur {totalPages}
-                        </span>
-                        <button
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages}
-                            className={`p-2 bg-gray-200 rounded-full ${currentPage === totalPages ? 'opacity-50' : 'hover:bg-gray-300'}`}
-                        >
-                            <ChevronRight className="w-6 h-6" />
-                        </button>
-                    </div>
-
-                    {/* Modal */}
-                    {isModalOpen && (
-                        <Modal selectedTemplate={selectedTemplate} handleCloseModal={handleCloseModal} />
-                    )}
                 </div>
             </div>
+
+            {/* Modal de création de modèle */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                title="Créer un Nouveau Modèle"
+                onSubmit={handleCreateTemplate}
+                initialTemplate={{
+                    name: "",
+                    description: "",
+                    fields: []
+                }}
+            />
+
+            {/* Modal d'édition de modèle */}
+            {editingTemplate && (
+                <Modal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingTemplate(null);
+                    }}
+                    title="Modifier le Modèle"
+                    onSubmit={handleEditTemplate}
+                    initialTemplate={editingTemplate}
+                />
+            )}
+
+            {/* Modal de confirmation de suppression */}
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setTemplateToDelete(null);
+                }}
+                variant="danger"
+            >
+                <div className="text-center">
+                    <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Supprimer le modèle</h2>
+                    <p className="mb-6">
+                        Êtes-vous sûr de vouloir supprimer le modèle "{templateToDelete?.name}" ?
+                        Cette action est irréversible.
+                    </p>
+                    <div className="flex justify-center space-x-4">
+                        <button
+                            onClick={() => setIsDeleteModalOpen(false)}
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={confirmDeleteTemplate}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        >
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             <NavBar />
         </div>
     );
 };
 
-export default TemplateSelectionPage;
+export default TemplateConfigurationPage;

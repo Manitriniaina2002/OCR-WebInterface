@@ -6,6 +6,7 @@ import Acceuil from './pages/Acceuil';
 import ScannerPage from './pages/Scanner';
 import Galerie from './pages/Galerie';
 import Template from './pages/Template';
+import Profile from './pages/profil/profile';
 import './App.css';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/galerie" element={<Galerie />} />
             <Route path="/template" element={<Template />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
       ) : (

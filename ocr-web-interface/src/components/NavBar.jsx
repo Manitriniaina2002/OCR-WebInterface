@@ -18,7 +18,7 @@ const NavBar = () => {
             '/scanner': 'Camera',
             '/galerie': 'Galerie',
             '/template': 'Template',
-            '/profil': 'Profil'
+            '/profile': 'Profile'
         };
 
         setActivePage(pathToPage[location.pathname] || 'Accueil');
@@ -35,7 +35,7 @@ const NavBar = () => {
         { page: 'Camera', path: '/scanner', icon: Camera },
         { page: 'Galerie', path: '/galerie', icon: Image },
         { page: 'Template', path: '/template', icon: File },
-        { page: 'Profil', path: '/profil', icon: User }
+        { page: 'Profile', path: '/profile', icon: User }
     ];
 
     return (
@@ -50,10 +50,10 @@ const NavBar = () => {
                             key={button.page}
                             className={`flex flex-col items-center ${isActive ? 'text-white bg-purple-500' : 'text-purple-600'} rounded-full p-2`}
                             style={{
-                                width: '60px', // Agrandir le cercle
-                                height: '60px', // Agrandir le cercle
-                                borderRadius: '50%', // Transformer en cercle
-                                border: '2px solid #fff'
+                                width: '60px', 
+                                height: '60px', 
+                                borderRadius: '30%', 
+                                border: '7px solid #fff'
                             }}
                             onClick={() => handlePageChange(button.page, button.path)}
                         >
