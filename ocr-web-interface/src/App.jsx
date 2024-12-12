@@ -20,6 +20,7 @@ function App() {
       {!isAuthenticated ? (
         <div>
           <Routes>
+            <Route path="/" element={<SignIn onLogin={handleLogin} />} />
             <Route path="/signin" element={<SignIn onLogin={handleLogin} />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/acceuil" element={<Acceuil />} />
@@ -38,5 +39,6 @@ function App() {
 }
 
 export default App;
+
 
 
