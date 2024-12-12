@@ -1,70 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Camera, Image, File, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useResponsiveNavBar } from '../components/Hooks/useResponsiveNavBar';
 
 const NavBar = () => {
     const navigate = useNavigate();
-    const location = useLocation(); // Utilisez useLocation pour obtenir la route actuelle
+    const location = useLocation();
     const [activePage, setActivePage] = useState('Accueil');
+
+    // Utiliser le hook personnalisé pour la responsivité
+    const { screenWidth, showLabels, isCompactMode } = useResponsiveNavBar();
 
     useEffect(() => {
         // Mettez à jour activePage en fonction de la route actuelle
-        if (location.pathname === '/acceuil') {
-            setActivePage('Accueil');
-        } else if (location.pathname === '/scanner') {
-            setActivePage('Camera');
-        } else if (location.pathname === '/galerie') {
-            setActivePage('Galerie');
-        } else if (location.pathname === '/template') {
-            setActivePage('Template');
-        } else if (location.pathname === '/profil') {
-            setActivePage('Profil');
-        }
-    }, [location]); // Recalculer chaque fois que la route change
+        const pathToPage = {
+            '/acceuil': 'Accueil',
+            '/scanner': 'Camera',
+            '/galerie': 'Galerie',
+            '/template': 'Template',
+            '/profile': 'Profile'
+        };
+
+        setActivePage(pathToPage[location.pathname] || 'Accueil');
+    }, [location]);
 
     const handlePageChange = (page, path) => {
         setActivePage(page);
         navigate(path);
     };
 
+    // Configuration des boutons de navigation
+    const navButtons = [
+        { page: 'Accueil', path: '/acceuil', icon: Home },
+        { page: 'Camera', path: '/scanner', icon: Camera },
+        { page: 'Galerie', path: '/galerie', icon: Image },
+        { page: 'Template', path: '/template', icon: File },
+        { page: 'Profile', path: '/profile', icon: User }
+    ];
+
     return (
-        <div className="flex justify-between items-center px-4 py-2 bg-white shadow-md sm:px-6 md:px-8 lg:px-10">
-            <div className="flex items-center space-x-4">
-                <button
-                    className={`flex flex-col items-center text-purple-600 ${activePage === 'Accueil' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Accueil', '/acceuil')}
-                >
-                    <Home className="h-5 w-5" />
-                    {activePage === 'Accueil' && <span className="text-xs">Accueil</span>}
-                </button>
-                <button
-                    className={`flex flex-col items-center text-purple-600 ${activePage === 'Camera' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Camera', '/scanner')}
-                >
-                    <Camera className="h-5 w-5" />
-                    {activePage === 'Camera' && <span className="text-xs">Scanner</span>}
-                </button>
-                <button
-                    className={`flex flex-col items-center text-purple-600 ${activePage === 'Galerie' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Galerie', '/galerie')}
-                >
-                    <Image className="h-5 w-5" />
-                    {activePage === 'Galerie' && <span className="text-xs">Galerie</span>}
-                </button>
-                <button
-                    className={`flex flex-col items-center text-purple-600 ${activePage === 'Template' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Template', '/template')}
-                >
-                    <File className="h-5 w-5" />
-                    {activePage === 'Template' && <span className="text-xs">Template</span>}
-                </button>
-                <button
-                    className={`flex flex-col items-center text-purple-600 ${activePage === 'Profil' ? 'font-bold' : ''}`}
-                    onClick={() => handlePageChange('Profil', '/profil')}
-                >
-                    <User className="h-5 w-5" />
-                    {activePage === 'Profil' && <span className="text-xs">Profil</span>}
-                </button>
+        <div className="fixed bottom-0 left-0 right-0 bg-white shadow-md">
+            <div className="flex items-center justify-around py-2">
+                {navButtons.map((button) => {
+                    const Icon = button.icon;
+                    const isActive = activePage === button.page;
+
+                    return (
+                        <button
+                            key={button.page}
+                            className={`flex flex-col items-center ${isActive ? 'text-white bg-purple-500' : 'text-purple-600'} rounded-full p-2`}
+                            style={{
+                                width: '60px', 
+                                height: '60px', 
+                                borderRadius: '30%', 
+                                border: '7px solid #fff'
+                            }}
+                            onClick={() => handlePageChange(button.page, button.path)}
+                        >
+                            <Icon className="h-5 w-5" />
+                            {showLabels && (
+                                <span className="text-xs">
+                                    {button.page}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

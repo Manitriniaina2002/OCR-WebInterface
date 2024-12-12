@@ -6,6 +6,7 @@ import Acceuil from './pages/Acceuil';
 import ScannerPage from './pages/Scanner';
 import Galerie from './pages/Galerie';
 import Template from './pages/Template';
+import Profile from './pages/profil/profile';
 import './App.css';
 
 function App() {
@@ -20,12 +21,14 @@ function App() {
       {!isAuthenticated ? (
         <div>
           <Routes>
+            <Route path="/" element={<SignIn onLogin={handleLogin} />} />
             <Route path="/signin" element={<SignIn onLogin={handleLogin} />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/acceuil" element={<Acceuil />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/galerie" element={<Galerie />} />
             <Route path="/template" element={<Template />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
       ) : (
@@ -38,5 +41,6 @@ function App() {
 }
 
 export default App;
+
 
 
