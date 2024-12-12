@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, FileText, Image as ImageIcon, Settings } from 'lucide-react';
+import { Scan,Camera, Upload, FileText, Image as ImageIcon } from 'lucide-react';
 import NavBar from '../components/NavBar';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/swiper-bundle.css';
@@ -10,7 +10,7 @@ const slides = [
     {
         title: "Bienvenue sur MANDIKA OCR",
         description: "Une application intuitive pour extraire du texte à partir d'images.",
-        icon: <Settings className="w-16 h-16 text-purple-500 mb-4" />,
+        icon: <Scan className="w-16 h-16 text-purple-500 mb-4" />,
     },
     {
         title: "Capture de Document",
