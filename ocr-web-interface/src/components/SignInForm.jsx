@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-    mockUsers,
-    validateLoginCredentials,
-    generateMockToken,
-    mockAuthConfig,
-    authErrorMessages
-} from './mock-data';
+import authService from '../components/API/authService';
 
 function SignInForm() {
     const navigate = useNavigate();
@@ -20,6 +14,7 @@ function SignInForm() {
         email: '',
         general: ''
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         const { id, value } = e.target;
@@ -28,13 +23,12 @@ function SignInForm() {
             [id]: value
         }));
 
-        // Clear specific errors when user starts typing
-        if (id === 'email') {
-            setErrors(prev => ({ ...prev, email: '' }));
-        }
-        if (id === 'password') {
-            setErrors(prev => ({ ...prev, general: '' }));
-        }
+        // Réinitialiser les erreurs lors de la saisie
+        setErrors(prev => ({
+            ...prev,
+            [id]: '',
+            general: ''
+        }));
     };
 
     const validateEmail = (email) => {
@@ -42,47 +36,51 @@ function SignInForm() {
         return re.test(String(email).toLowerCase());
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         let formErrors = {};
 
-        // Email validation
+        // Validation de l'email
         if (!formData.email) {
             formErrors.email = 'Veuillez entrer votre adresse email';
         } else if (!validateEmail(formData.email)) {
             formErrors.email = 'Veuillez entrer une adresse email valide';
         }
 
-        // Password validation
+        // Validation du mot de passe
         if (!formData.password) {
             formErrors.general = 'Veuillez entrer votre mot de passe';
         }
 
-        // If there are errors, set them and prevent submission
+        // Si des erreurs existent, les afficher
         if (Object.keys(formErrors).length > 0) {
             setErrors(formErrors);
             return;
         }
 
-        // Validate credentials using mock data
-        const loginResult = validateLoginCredentials(formData.email, formData.password);
+        // Réinitialiser les erreurs
+        setErrors({});
+        setIsLoading(true);
 
-        if (loginResult.isValid) {
-            // Generate mock authentication token
-            const token = generateMockToken(loginResult.user);
+        try {
+            // Appel au service d'authentification
+            const response = await authService.login(formData.email, formData.password);
 
-            // Store token (for development)
-            localStorage.setItem(mockAuthConfig.tokenKey, token);
+            // Redirection basée sur le rôle (à adapter selon votre backend)
+            const redirectRoute = response.user.role === 'admin'
+                ? '/acceuil'
+                : '/acceuil';
 
-            // Redirect based on user role
-            const redirectRoute = mockAuthConfig.defaultRedirectRoutes[loginResult.user.role] || '/acceuil';
             navigate(redirectRoute);
-        } else {
-            // Show error message
+        } catch (error) {
+            // Gestion des erreurs d'authentification
+            console.error('Détail complet de l erreur :', error);
             setErrors(prev => ({
                 ...prev,
-                general: loginResult.error || authErrorMessages.invalidCredentials
+                general: error.response?.data?.message || 'Erreur de connexion'
             }));
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -192,9 +190,14 @@ function SignInForm() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
+                            disabled={isLoading}
+                            className={`w-full py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg
+                ${isLoading
+                                    ? 'bg-purple-400 cursor-not-allowed'
+                                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`}
                         >
-                            Se connecter
+                            {isLoading ? 'Connexion en cours...' : 'Se connecter'}
                         </button>
                     </form>
 
