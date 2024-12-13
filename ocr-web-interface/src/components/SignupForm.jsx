@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Assurez-vous d'importer axios
 
 function SignupForm() {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
-    const [showPassword, setShowPassword] = useState({
-        password: false,
-        confirmPassword: false
-    });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({
         passwordMatch: '',
-        email: ''
+        email: '',
+        general: ''
     });
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         const { id, value } = e.target;
@@ -40,13 +41,23 @@ function SignupForm() {
         return re.test(String(email).toLowerCase());
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         let formErrors = {};
+
+        // Validate username
+        if (!formData.name) {
+            formErrors.name = 'Veuillez entrer un nom d\'utilisateur';
+        }
 
         // Email validation
         if (!validateEmail(formData.email)) {
             formErrors.email = 'Veuillez entrer une adresse email valide';
+        }
+
+        // Validate password
+        if (!formData.password) {
+            formErrors.password = 'Veuillez entrer votre mot de passe';
         }
 
         // Password match validation
@@ -60,16 +71,36 @@ function SignupForm() {
             return;
         }
 
-        // If validation passes, proceed with form submission
-        console.log('Form submitted:', formData);
-        // Add your form submission logic here
+        setLoading(true);
+        try {
+            const response = await axios.post('http://127.0.0.1:8000/api/auth/register/', formData);
+
+            if (response.status === 201) {
+                const { access, refresh } = response.data;
+                localStorage.setItem('access_token', access);
+                localStorage.setItem('refresh_token', refresh);
+
+                navigate('/acceuil');
+            }
+        } catch (error) {
+            setLoading(false);
+            if (error.response && error.response.data) {
+                setErrors(prev => ({
+                    ...prev,
+                    general: error.response.data.detail || 'Une erreur est survenue'
+                }));
+            } else {
+                setErrors({ general: 'Une erreur est survenue, veuillez réessayer' });
+            }
+        }
     };
 
-    const togglePasswordVisibility = (field) => {
-        setShowPassword(prev => ({
-            ...prev,
-            [field]: !prev[field]
-        }));
+    const togglePasswordVisibility = () => {
+        setShowPassword(prev => !prev);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setShowConfirmPassword(!showConfirmPassword);
     };
 
     return (
@@ -99,12 +130,19 @@ function SignupForm() {
             {/* Right Side - Signup Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
                 <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 sm:p-8 border border-purple-100">
-                    <h2 className="text-3xl font-bold text-center text-purple-700 mb-6">Inscription</h2>
+                    <h2 className="text-3xl font-bold text-center text-purple-700 mb-6">Créer un compte</h2>
+
+                    {/* General Error Message */}
+                    {errors.general && (
+                        <div className="text-red-500 text-sm mb-4">
+                            {errors.general}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Name Input */}
+                        {/* Username Input */}
                         <div className="relative">
-                            <label htmlFor="name" className="sr-only">Nom complet</label>
+                            <label htmlFor="name" className="sr-only">Nom d'utilisateur</label>
                             <div className="flex items-center">
                                 <div className="absolute left-3 text-gray-400">
                                     <User size={20} />
@@ -114,11 +152,13 @@ function SignupForm() {
                                     id="name"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    placeholder="Nom complet"
-                                    className="w-full pl-10 p-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200"
+                                    placeholder="Nom d'utilisateur"
+                                    className={`w-full pl-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
+                                        ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                             </div>
+                            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                         </div>
 
                         {/* Email Input */}
@@ -134,17 +174,12 @@ function SignupForm() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Adresse email"
-                                    className={`w-full pl-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200 
-                    ${errors.email
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-purple-200 focus:ring-purple-500'
-                                        }`}
+                                    className={`w-full pl-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
+                                        ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                             </div>
-                            {errors.email && (
-                                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-                            )}
+                            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                         </div>
 
                         {/* Password Input */}
@@ -155,22 +190,24 @@ function SignupForm() {
                                     <Lock size={20} />
                                 </div>
                                 <input
-                                    type={showPassword.password ? "text" : "password"}
+                                    type={showPassword ? "text" : "password"}
                                     id="password"
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Mot de passe"
-                                    className="w-full pl-10 pr-10 p-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200"
+                                    className={`w-full pl-10 pr-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
+                                        ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => togglePasswordVisibility('password')}
+                                    onClick={togglePasswordVisibility}
                                     className="absolute right-3 text-gray-500 hover:text-purple-600"
                                 >
-                                    {showPassword.password ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
+                            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
                         </div>
 
                         {/* Confirm Password Input */}
@@ -181,49 +218,41 @@ function SignupForm() {
                                     <Lock size={20} />
                                 </div>
                                 <input
-                                    type={showPassword.confirmPassword ? "text" : "password"}
+                                    type={showConfirmPassword ? "text" : "password"}
                                     id="confirmPassword"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     placeholder="Confirmer le mot de passe"
                                     className={`w-full pl-10 pr-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
-                    ${errors.passwordMatch
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-purple-200 focus:ring-purple-500'
-                                        }`}
+                                        ${errors.passwordMatch ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                                    onClick={toggleConfirmPasswordVisibility}
                                     className="absolute right-3 text-gray-500 hover:text-purple-600"
                                 >
-                                    {showPassword.confirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                            {errors.passwordMatch && (
-                                <p className="text-red-500 text-sm mt-1">{errors.passwordMatch}</p>
-                            )}
+                            {errors.passwordMatch && <p className="text-red-500 text-sm mt-1">{errors.passwordMatch}</p>}
                         </div>
 
                         {/* Submit Button */}
                         <button
                             type="submit"
                             className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
+                            disabled={loading}
                         >
-                            Créer un compte
+                            {loading ? 'Chargement...' : 'Créer un compte'}
                         </button>
                     </form>
 
-                    {/* Login Link */}
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Vous avez déjà un compte ? {' '}
-                            <Link
-                                to="/signin"
-                                className="text-purple-600 font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                                Connectez-vous
+                    <div className="mt-4 text-center">
+                        <p>
+                            Vous avez déjà un compte ?{' '}
+                            <Link to="/signin" className="text-purple-600 hover:text-purple-800">
+                                Se connecter
                             </Link>
                         </p>
                     </div>
@@ -234,4 +263,3 @@ function SignupForm() {
 }
 
 export default SignupForm;
-
