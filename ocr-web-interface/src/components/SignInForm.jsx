@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import authService from '../components/API/authService';
+import axios from 'axios';
 
 function SignInForm() {
     const navigate = useNavigate();
@@ -14,8 +14,9 @@ function SignInForm() {
         email: '',
         general: ''
     });
-    const [isLoading, setIsLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
+    // Handle input changes
     const handleChange = (e) => {
         const { id, value } = e.target;
         setFormData(prev => ({
@@ -23,19 +24,22 @@ function SignInForm() {
             [id]: value
         }));
 
-        // Réinitialiser les erreurs lors de la saisie
-        setErrors(prev => ({
-            ...prev,
-            [id]: '',
-            general: ''
-        }));
+        // Clear specific errors when user starts typing
+        if (id === 'email') {
+            setErrors(prev => ({ ...prev, email: '' }));
+        }
+        if (id === 'password') {
+            setErrors(prev => ({ ...prev, general: '' }));
+        }
     };
 
+    // Validate email format
     const validateEmail = (email) => {
         const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         return re.test(String(email).toLowerCase());
     };
 
+    // Handle form submit
     const handleSubmit = async (event) => {
         event.preventDefault();
         let formErrors = {};
@@ -58,39 +62,39 @@ function SignInForm() {
             return;
         }
 
-        // Réinitialiser les erreurs
-        setErrors({});
-        setIsLoading(true);
-
+        setLoading(true);
         try {
-            // Appel au service d'authentification
-            const response = await authService.login(formData.email, formData.password);
+            const response = await axios.post('http://127.0.0.1:8000/api/auth/login/', formData); // Assurez-vous que l'URL est correcte
 
-            // Redirection basée sur le rôle (à adapter selon votre backend)
-            const redirectRoute = response.user.role === 'admin'
-                ? '/acceuil'
-                : '/acceuil';
+            if (response.status === 200) {
+                const { access, refresh } = response.data; // Accédez aux tokens
+                localStorage.setItem('access_token', access); // Stocker le token d'accès
+                localStorage.setItem('refresh_token', refresh); // Stocker le token de rafraîchissement (si nécessaire)
 
-            navigate(redirectRoute);
+                // Rediriger après la connexion réussie
+                navigate('/acceuil'); // Changez '/dashboard' par votre route de redirection
+            }
         } catch (error) {
-            // Gestion des erreurs d'authentification
-            console.error('Détail complet de l erreur :', error);
-            setErrors(prev => ({
-                ...prev,
-                general: error.response?.data?.message || 'Erreur de connexion'
-            }));
-        } finally {
-            setIsLoading(false);
+            setLoading(false);
+            if (error.response && error.response.data) {
+                setErrors(prev => ({
+                    ...prev,
+                    general: error.response.data.detail || 'Email ou mot de passe incorrect'
+                }));
+            } else {
+                setErrors({ general: 'Une erreur est survenue, veuillez réessayer' });
+            }
         }
     };
 
+    // Toggle password visibility
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
     };
 
     return (
         <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-purple-50 to-purple-100">
-            {/* Left Side - Decorative Section (Visible on larger screens) */}
+            {/* Left Side - Decorative Section */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-600 to-purple-800 items-center justify-center p-12">
                 <div className="text-center text-white">
                     <h1 className="text-4xl font-bold mb-4">Bienvenue sur MANDIKA</h1>
@@ -131,17 +135,12 @@ function SignInForm() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Adresse email"
-                                    className={`w-full pl-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200 
-                    ${errors.email
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-purple-200 focus:ring-purple-500'
-                                        }`}
+                                    className={`w-full pl-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
+                                        ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                             </div>
-                            {errors.email && (
-                                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-                            )}
+                            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                         </div>
 
                         {/* Password Input */}
@@ -158,10 +157,7 @@ function SignInForm() {
                                     onChange={handleChange}
                                     placeholder="Mot de passe"
                                     className={`w-full pl-10 pr-10 p-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
-                    ${errors.general
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-purple-200 focus:ring-purple-500'
-                                        }`}
+                                        ${errors.general ? 'border-red-500 focus:ring-red-500' : 'border-purple-200 focus:ring-purple-500'}`}
                                     required
                                 />
                                 <button
@@ -172,9 +168,7 @@ function SignInForm() {
                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
-                            {errors.general && (
-                                <p className="text-red-500 text-sm mt-1">{errors.general}</p>
-                            )}
+                            {errors.general && <p className="text-red-500 text-sm mt-1">{errors.general}</p>}
                         </div>
 
                         {/* Forgot Password Link */}
@@ -190,14 +184,10 @@ function SignInForm() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isLoading}
-                            className={`w-full py-3 rounded-lg transition duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg
-                ${isLoading
-                                    ? 'bg-purple-400 cursor-not-allowed'
-                                    : 'bg-purple-600 text-white hover:bg-purple-700'
-                                }`}
+                            className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg"
+                            disabled={loading}
                         >
-                            {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+                            {loading ? 'Chargement...' : 'Se connecter'}
                         </button>
                     </form>
 
