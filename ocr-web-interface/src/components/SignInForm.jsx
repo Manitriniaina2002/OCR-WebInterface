@@ -44,19 +44,19 @@ function SignInForm() {
         event.preventDefault();
         let formErrors = {};
 
-        // Email validation
+        // Validation de l'email
         if (!formData.email) {
             formErrors.email = 'Veuillez entrer votre adresse email';
         } else if (!validateEmail(formData.email)) {
             formErrors.email = 'Veuillez entrer une adresse email valide';
         }
 
-        // Password validation
+        // Validation du mot de passe
         if (!formData.password) {
             formErrors.general = 'Veuillez entrer votre mot de passe';
         }
 
-        // If there are errors, set them and prevent submission
+        // Si des erreurs existent, les afficher
         if (Object.keys(formErrors).length > 0) {
             setErrors(formErrors);
             return;
