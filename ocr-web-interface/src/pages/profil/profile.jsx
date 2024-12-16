@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, FileText, User, Settings, LogOut, ChevronDown, X, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import NavBar from '../../components/NavBar';
+import axios from 'axios';
 
 const ProfileInterface = () => {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -8,8 +10,8 @@ const ProfileInterface = () => {
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
     const [profile, setProfile] = useState({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
+        name: '',
+        email: '',
     });
     const [results, setResults] = useState([]);
     const [ocrSettings, setOcrSettings] = useState({
@@ -17,7 +19,41 @@ const ProfileInterface = () => {
         format: 'pdf',
     });
     const [activeSection, setActiveSection] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
+    // useEffect(() => {
+    //     const fetchUserProfile = async () => {
+    //         const token = localStorage.getItem('acceess_token');
+    //         if (!token) {
+    //             setError('Token manquant. Veuillez vous reconnecter');
+    //             setLoading(false);
+    //             return;
+    //         }
+            
+    //         try {
+    //             const response = await axios.get('http://127.0.0.1:8000/api/auth/user-details/', {
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`,
+    //                 },
+    //             });
+    //             setProfile(response.data);
+    //         } catch (err) {
+    //             if (err.response?.status == 401) {
+    //                 setError('Non autorise. Votre session a peut etre expire');
+    //                 localStorage.removeItem('access_token');
+    //                 localStorage.removeItem('refresh_token');
+    //                 window.location.href = '/signin';
+    //             } else {
+    //                 setError('Erreur lors de la recuperation des informations du profil');
+    //             }
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
+    //     fetchUserProfile();
+    // })
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -65,7 +101,12 @@ const ProfileInterface = () => {
     };
 
     const handleLogout = () => {
-        // TODO: Implement logout logic
+        //Suppression des tokens dans le localStorage
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+
+        // Redirect to login page
+        navigate('/signin');
         console.log('Logging out...');
     };
 
